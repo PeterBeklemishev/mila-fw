@@ -27,6 +27,7 @@ debug = False
 
 serial = Serial()
 help ="\nUsage: "+ os.path.basename(__file__) + " -p serialport [-V] [-e] [-f inputfile] [-v] [-r]\n\n\
+\t-P preload bootloader\n\
 \t-p set serial port name\n\
 \t-V verbose\n\
 \t-e erase\n\
@@ -34,44 +35,47 @@ help ="\nUsage: "+ os.path.basename(__file__) + " -p serialport [-V] [-e] [-f in
 \t-v verify\n\
 \t-r run uploaded"
 
-def start():
-	print("lol")
-
 def sync():
 	print ("Synchronization...")
 	txdbuf = bytearray()
 	txdbuf[len(txdbuf):] = b'\x00';
 
-	for i in range(0,512):
+
+	timeout=serial.timeout
+	serial.timeout=0
+
+	rxdbuf = bytearray()
+	trys = 0;
+	while rxdbuf != b'>':
 		serial.write(txdbuf)
-	
-	print("Sended sync sequence") if verbose else None
+		rxdbuf = serial.read(1)
+		trys = trys+1
+		if(trys>512):
+			break;
 
-	rxdbuf = serial.read(3)
-	print("Returned: {}".format(rxdbuf)) if verbose else None
+	serial.timeout = timeout
+	if(trys>512):
+		print ("Synchronization error")
+		return False
 
-	if	(len(rxdbuf) != 3):
-		for i in range(0,512):
-			serial.write(txdbuf)		
-		if	(len(rxdbuf) !=3):
-			print ("Synchronization error")
-			serial.close()
-			return False
 	print("Synchronized successfully")
 	return True
 
+
 def setBaudrate(baudrate):
 	print ("Setting up baudrate...")
-	txdbuf = bytearray()
-	txdbuf[len(txdbuf):] = b'B';
-	txdbuf[len(txdbuf):] = b'\x00'
-	txdbuf[len(txdbuf):] = b'\xC2'
-	txdbuf[len(txdbuf):] = b'\x01'
-	txdbuf[len(txdbuf):] = b'\x00'
+	txdbuf = bytearray([\
+		ord('B'),\
+		0x00,\
+		0xC2,\
+		0x01,\
+		0x00])
+
 	serial.write(txdbuf)
 
 	print("Sending command") if verbose else None
-	rxdbuf = serial.read(serial.bytesize)
+	
+	rxdbuf = serial.read(10)
 
 	print("Got respose: ",rxdbuf) if verbose else None
 
@@ -95,16 +99,17 @@ def setBaudrate(baudrate):
 def bootExtLoader(dwadrboot,ilboot,bufram):
 
 	print("Uploading bootloader...")
-	txdbuf = bytearray()
-	txdbuf[len(txdbuf):] = b'L'
-	txdbuf[len(txdbuf):] = bytes([ dwadrboot & 0xff ])
-	txdbuf[len(txdbuf):] = bytes([ (dwadrboot>>8) & 0xff ])
-	txdbuf[len(txdbuf):] = b'\x00'
-	txdbuf[len(txdbuf):] = b'\x20'
-	txdbuf[len(txdbuf):] = bytes([ ilboot & 0xff ])
-	txdbuf[len(txdbuf):] = bytes([ (ilboot>>8) & 0xff ])
-	txdbuf[len(txdbuf):] = b'\x00';
-	txdbuf[len(txdbuf):] = b'\x00';
+	txdbuf = bytearray([\
+		ord('L'),\
+		dwadrboot & 0xff,\
+		(dwadrboot>>8) & 0xff,\
+		0x00,\
+		0x20,\
+		ilboot & 0xff,\
+		(ilboot>>8) & 0xff,\
+		0x00,\
+		0x00 ])
+	
 	serial.write(txdbuf)
 
 	print("Start adress: {}, lenght: {}".format(dwadrboot,ilboot)) if verbose or debug else None
@@ -129,16 +134,17 @@ def bootExtLoader(dwadrboot,ilboot,bufram):
 	print("Start code verifying") if verbose or debug else None
 	
 	for i in range(0,ilboot>>3):
-		txdbuf = []
-		txdbuf[len(txdbuf):] = b'Y'
-		txdbuf[len(txdbuf):] = bytes([ (dwadrboot+8*i) & 0xff ])
-		txdbuf[len(txdbuf):] = bytes([ ((dwadrboot+8*i)>>8) & 0xff ])
-		txdbuf[len(txdbuf):] = b'\x00'
-		txdbuf[len(txdbuf):] = b'\x20'
-		txdbuf[len(txdbuf):] = b'\x08'
-		txdbuf[len(txdbuf):] = b'\x00'
-		txdbuf[len(txdbuf):] = b'\x00'
-		txdbuf[len(txdbuf):] = b'\x00'
+		txdbuf = bytearray([\
+			ord('Y'),\
+			(dwadrboot+8*i) & 0xff,\
+			((dwadrboot+8*i)>>8) & 0xff,\
+			0x00,\
+			0x20,\
+			0x08,\
+			0x00,\
+			0x00,\
+			0x00])
+		
 		serial.write(txdbuf)
 		
 		f = True;
@@ -147,7 +153,7 @@ def bootExtLoader(dwadrboot,ilboot,bufram):
 		#print(chr(rxdbuf[0]), b'Y',b'K')
 		
 		#print(i,rxdbuf[0],rxdbuf[9], ord(b'Y'),ord(b'K'))
-		print("{} line: {}".format(i,rxdbuf)) if verbose else None
+		#print("{} line: {}".format(i,rxdbuf)) if verbose else None
 		if( (rxdbuf[0]==ord(b'Y')) and (rxdbuf[9]==ord(b'K')) ):
 			#print("ok1----------------------------")
 			for j in range(0,8):
@@ -170,13 +176,14 @@ def runExtLoader(dwadrboot,ilboot,bufcod):
 	
 	print("Starting bootloader...")
 	id_str = bytearray(b'1986BOOTUART')
-	txdbuf = bytearray()
+	
+	txdbuf = bytearray([\
+		ord('R'),\
+		dwadrboot & 0xff,\
+		(dwadrboot>>8) & 0xff,\
+		0x00,\
+		0x20])
 
-	txdbuf[len(txdbuf):] = b'R';
-	txdbuf[len(txdbuf):] = bytes([ dwadrboot & 0xff ]);
-	txdbuf[len(txdbuf):] = bytes([ (dwadrboot>>8) & 0xff ]);
-	txdbuf[len(txdbuf):] = b'\x00';
-	txdbuf[len(txdbuf):] = b'\x20';
 	serial.write(txdbuf)
 	rxdbuf = serial.read(1)
 	if (rxdbuf != b'R'):
@@ -207,15 +214,13 @@ def erase():
 	print ("Erasing...")
 	adr = b''
 	data = b''	
-	txdbuf = bytearray()
-	txdbuf[len(txdbuf):] = b'E'
+	txdbuf = bytearray(b'E')
 	
 	serial.write(txdbuf)
 
 	#print("preparing to sleep") if verbose else None
 	#sleep(4);
 	#print("waking up") if verbose else None
-
 
 	rxdbuf = serial.read(9)
 	#print("readed {} bytes".format(len(txdbuf))) if verbose else None
@@ -237,14 +242,15 @@ def erase():
 	return 0;
 
 def program(ilcod, bufcodhex):
-	print (bufcodhex[0:ilcod])
+	#print (bufcodhex[0:ilcod])
 	print ("Program {} byte...".format(ilcod));
-	txdbuf = bytearray()
-	txdbuf[len(txdbuf):] = b'A'
-	txdbuf[len(txdbuf):] = b'\x00'
-	txdbuf[len(txdbuf):] = b'\x00'
-	txdbuf[len(txdbuf):] = b'\x00'
-	txdbuf[len(txdbuf):] = b'\x08'
+	txdbuf = bytearray([\
+		ord('A'),\
+		0x00,\
+		0x00,\
+		0x00,\
+		0x08])
+	
 	serial.write(txdbuf)
 	rxdbuf = serial.read(1)
 	if(rxdbuf != b'\x08'):
@@ -254,13 +260,13 @@ def program(ilcod, bufcodhex):
 
 	print("ready to upload")
 	txdbuf = bytearray(b'P');
-	print("command", txdbuf)
+	#print("command", txdbuf)
 	for i in range(0,ilcod>>8):
 		
 		serial.write(txdbuf)
 
 		#print("info",i<<8,(i<<8)+256,"|",bufcodhex[i:256])	
-		print("sending",bufcodhex[(i<<8):((i<<8)+256)])
+		#print("sending",bufcodhex[(i<<8):((i<<8)+256)])
 		serial.write(bufcodhex[(i<<8):((i<<8)+256)]);
 		ks = 0;
 		for j in range(0,256):
@@ -272,7 +278,7 @@ def program(ilcod, bufcodhex):
 			print("exchange error");
 			serial.close();
 			return 0
-		print("done:",i)	
+		#print("done:",i)	
 	print("Program {} byte done!".format(ilcod));
 	return 1;
 
@@ -326,41 +332,25 @@ def verify(ilcod, bufcodhex):
 	return 1;	
 	
 def run():
-	'''
-	// TODO: добавьте свой код обработчика уведомлений
-	m_run.EnableWindow(0);
-	if(!com.Open(InitParam.comname))
-	{
-		str = "Ошибка открытия COM порта!";
-		m_list.InsertString(m_list.GetCount(),str);
-		return;
-	}
-	com.dcb.BaudRate = CBR_115200;
-	SetCommState(com.hCom, &com.dcb);
-	str = "Run at 0x08000000...";
-	m_list.InsertString(m_list.GetCount(),str);
-	txdbuf[0] = 'R';
-	com.WriteBlock(txdbuf,1);
-	if	((!com.ReadBlock(rxdbuf,1))||(rxdbuf[0]!='R'))
-	{
-		str = "ошибка обмена";
-		m_list.InsertString(m_list.GetCount(),str);
-	}
-	else
-	{
-		m_list.DeleteString(m_list.GetCount()-1);
-		str = "Run at 0x08000000 OK!";
-		m_list.InsertString(m_list.GetCount(),str);
-	}
-	com.Close();
-	return;
-	'''
-	print ("running...")
-
+	print("Run at 0x08000000...")
+	
+	txdbuf = bytearray(b'R');
+	serial.write(txdbuf)
+	rxdbuf = serial.read(1)
+	if	(rxdbuf != b'R'):
+		print("exchange error:",rxdbuf)
+		serial.close();
+		return False
+	else:
+		print("Run at 0x08000000 OK!")
+	
+	return True;
+	
+	
 def main(argv):
 	acts = []
 	try:
-		opts, args = getopt.getopt(argv,"p:Vef:vr")
+		opts, args = getopt.getopt(argv,"p:Vef:vrP")
 	except getopt.GetoptError:
 		print(help)
 		sys.exit(2)
@@ -377,6 +367,8 @@ def main(argv):
 			global verbose 
 			verbose = True
 
+		elif opt == "-P":
+			acts.append("preload")
 		elif opt == "-e":
 			acts.append("erase")
 
@@ -547,21 +539,28 @@ def test():
 		ord(b'\x20'),\
 		ilboot & 0xff,\
 		(ilboot>>8) & 0xff ])
+
+	txdbuf = bytearray([\
+		ord('B'),\
+		0x00,\
+		0xC2,\
+		0x01,\
+		0x00])
 	print(txdbuf)
 	
-	print( ''.join('{:02x} '.format(txdbuf[x]) for x in range(0,8)))
+	print( ''.join('{:02x} '.format(txdbuf[x]) for x in range(0,5)))
 
 	sys.exit()
 
 if __name__ == "__main__":
 	
-	test()
+	#test()
 
 	acts = main(sys.argv[1:])
 	
 	if port:
 		try:
-			serial = Serial(port=port,timeout=3)
+			serial = Serial(port=port,timeout=1)
 		except SerialException:
 			print(" Unable to open", port, " Check if already opened or available")
 			sys.exit()
@@ -574,25 +573,35 @@ if __name__ == "__main__":
 
 
 	#work with factory bootloader (flash)
+
 	dwadrboot,ilboot,bufcod=prepareBootCode()
 	ilcod,bufcodhex = prepareHexCode()
 	
 	#sys.exit()
-	if(not sync() or \
-		not setBaudrate(115200) or \
-		not bootExtLoader(dwadrboot,ilboot,bufcod) or \
-		not runExtLoader(dwadrboot,ilboot,bufcod)):
-		sys.exit()
+	
 
 	#sys.exit()
 	#work with extended bootloader (ram)
+	
+	if "preload" in acts:
+		if(not sync() or \
+		not setBaudrate(115200) or \
+		not bootExtLoader(dwadrboot,ilboot,bufcod) or \
+		not runExtLoader(dwadrboot,ilboot,bufcod)):
+			sys.exit()
+	else:
+		if(not sync() or \
+		not setBaudrate(115200) or \
+		not runExtLoader(dwadrboot,ilboot,bufcod)):
+			sys.exit()
+
 	if "erase" in acts:
 		erase()
 	if "flash" in acts:
 		program(ilcod,bufcodhex)
 	if "verify" in acts:
 		verify(ilcod, bufcodhex)
-		print("done")	
 	if "run" in acts:
 		run()
-		print("done")
+
+	serial.close()
