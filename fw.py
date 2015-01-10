@@ -13,8 +13,6 @@
 
 # script seq 
 # getBootCod (code of bootloader) -> upload to chip -> e|f|r
-
-
 import sys, getopt,os
 
 from serial import Serial,SerialException
@@ -293,7 +291,7 @@ def verify(ilcod, bufcodhex):
 	com.WriteBlock(txdbuf,5);
 	if((!com.ReadBlock(rxdbuf,1))||(rxdbuf[0]!=0x08))
 	{
-		str = "ошибка обмена";
+		str = "exchange error";
 		m_list.InsertString(m_list.GetCount(),str);		
 		com.Close();
 		return 0;
@@ -306,7 +304,7 @@ def verify(ilcod, bufcodhex):
 			com.WriteBlock(txdbuf,1);
 			if(!com.ReadBlock(rxdbuf,8))
 			{
-				str = "ошибка обмена";
+				str = "exchange error";
 				m_list.InsertString(m_list.GetCount(),str);		
 				com.Close();
 				return 0;
