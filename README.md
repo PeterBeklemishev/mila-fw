@@ -5,15 +5,19 @@ Python firmware uploader for `mila` project
 
 `c:\Users\Петр\Documents\GitHub\mila-fw>c:\Python34\python.exe fw.py -P -p COM1 -e -f LED.HEX -V -r`, where:
 
+`-P` - preload bootloader
+
 `-p COM1` - selecting COM port
 
-`-e` - erase chip
+`-e` - erase chip before flashing
 
-`-f LED.HEX` - flash file `LED.HEX`
+`-f LED.HEX` - upload file `LED.HEX`
 
-`-V` - verify
+`-v` - verify
 
-`-r` - run code after uploading 
+`-V` - verbose output
+
+`-r` - run code after uploading
 
 
 Typical log:
