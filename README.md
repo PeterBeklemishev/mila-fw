@@ -1,5 +1,5 @@
 # mila-fw
-Python firmware uplader for `mila` project
+Python firmware uploader for `mila` project
 
 #USAGE EXAMPLE
 
