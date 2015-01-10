@@ -13,8 +13,6 @@
 
 # script seq 
 # getBootCod (code of bootloader) -> upload to chip -> e|f|r
-
-
 import sys, getopt,os
 
 from serial import Serial,SerialException
@@ -42,19 +40,20 @@ def sync():
 
 
 	timeout=serial.timeout
-	serial.timeout=0
-
+	serial.timeout = 0 
 	rxdbuf = bytearray()
+	
 	trys = 0;
 	while rxdbuf != b'>':
 		serial.write(txdbuf)
 		rxdbuf = serial.read(1)
+		#print(rxdbuf)
 		trys = trys+1
-		if(trys>512):
+		if(trys>1000000):
 			break;
 
 	serial.timeout = timeout
-	if(trys>512):
+	if(trys>1000000):
 		print ("Synchronization error")
 		return False
 
@@ -293,7 +292,7 @@ def verify(ilcod, bufcodhex):
 	com.WriteBlock(txdbuf,5);
 	if((!com.ReadBlock(rxdbuf,1))||(rxdbuf[0]!=0x08))
 	{
-		str = "ошибка обмена";
+		str = "exchange error";
 		m_list.InsertString(m_list.GetCount(),str);		
 		com.Close();
 		return 0;
@@ -306,7 +305,7 @@ def verify(ilcod, bufcodhex):
 			com.WriteBlock(txdbuf,1);
 			if(!com.ReadBlock(rxdbuf,8))
 			{
-				str = "ошибка обмена";
+				str = "exchange error";
 				m_list.InsertString(m_list.GetCount(),str);		
 				com.Close();
 				return 0;
