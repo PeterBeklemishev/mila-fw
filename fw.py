@@ -40,19 +40,20 @@ def sync():
 
 
 	timeout=serial.timeout
-	serial.timeout=0
-
+	serial.timeout = 0 
 	rxdbuf = bytearray()
+	
 	trys = 0;
 	while rxdbuf != b'>':
 		serial.write(txdbuf)
 		rxdbuf = serial.read(1)
+		#print(rxdbuf)
 		trys = trys+1
-		if(trys>512):
+		if(trys>1000000):
 			break;
 
 	serial.timeout = timeout
-	if(trys>512):
+	if(trys>1000000):
 		print ("Synchronization error")
 		return False
 
@@ -464,9 +465,8 @@ def getBootCode(type = 'b', filename = "1986_BOOT_UART.HEX"):
 				buf_hexstr = line
 				i =  i + len(buf_hexstr)
 				#parse line into number of bytes, adresses, offsets etc
-				result = getDataHex(buf_hexstr,dwadr_seg_hex ,dwadr_lineoffs_hex)
 
-				bl_hex,btype_hex,wadr_offs_hex,dwadr_seg_hex,dwadr_lineoffs_hex,buf_data_hex = result
+				bl_hex,btype_hex,wadr_offs_hex,dwadr_seg_hex,dwadr_lineoffs_hex,buf_data_hex = getDataHex(buf_hexstr,dwadr_seg_hex ,dwadr_lineoffs_hex)
 				
 				#if it's data line move data to output buffer
 				if(btype_hex == 0):
