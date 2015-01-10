@@ -466,9 +466,8 @@ def getBootCode(type = 'b', filename = "1986_BOOT_UART.HEX"):
 				buf_hexstr = line
 				i =  i + len(buf_hexstr)
 				#parse line into number of bytes, adresses, offsets etc
-				result = getDataHex(buf_hexstr,dwadr_seg_hex ,dwadr_lineoffs_hex)
 
-				bl_hex,btype_hex,wadr_offs_hex,dwadr_seg_hex,dwadr_lineoffs_hex,buf_data_hex = result
+				bl_hex,btype_hex,wadr_offs_hex,dwadr_seg_hex,dwadr_lineoffs_hex,buf_data_hex = getDataHex(buf_hexstr,dwadr_seg_hex ,dwadr_lineoffs_hex)
 				
 				#if it's data line move data to output buffer
 				if(btype_hex == 0):
