@@ -1,6 +1,5 @@
 # mila-fw
-Python uploader for `mila` projectt
-
+Python firmware uplader for `mila` project
 
 
 #TODO:
