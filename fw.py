@@ -521,7 +521,7 @@ def prepareBootCode():
 	return result
 
 def prepareHexCode():
-	filename = "LED.HEX"
+	filename = inputfile
 	result=getBootCode('h', filename)
 	ilcod,bufcod=result
 	#print( ilcod,''.join('{:02x} '.format(bufcod[x]) for x in range(0,ilcod)))
