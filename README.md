@@ -5,8 +5,11 @@ Python firmware uploader for `mila` project
 #HOWTO preinstal
 Python version dep. > 3.4
 
+
 apt-get install python3 python3-setuptool
+
 easy_install python3-pip
+
 pip install pyserial
 
 
