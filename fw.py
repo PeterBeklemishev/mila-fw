@@ -76,9 +76,9 @@ def setBaudrate(baudrate):
 	
 	rxdbuf = serial.read(10)
 
-	print("Got respose: ",rxdbuf) if verbose else None
+	print("Got response: ",rxdbuf) if verbose else None
 
-	print("Cange port baudrate setup on",baudrate)
+	print("Change port baudrate setup on",baudrate)
 	serial.baudrate = baudrate
 
 	print("Resyncronization baudrate...") if debug else None
