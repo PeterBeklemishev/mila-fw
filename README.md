@@ -12,6 +12,12 @@ easy_install python3-pip
 
 pip install pyserial
 
+    OR
+    
+apt-get install python3-pip
+
+pip install pyserial
+  
 
 #USAGE EXAMPLE
 
