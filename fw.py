@@ -20,18 +20,20 @@ from time import sleep
 
 port = ''
 inputfile = ''
+bootloaderfile = '1986_BOOT_UART.HEX'
 verbose = False
 debug = False
 
 serial = Serial()
-help ="\nUsage: "+ os.path.basename(__file__) + " -p serialport [-V] [-e] [-f inputfile] [-v] [-r]\n\n\
-\t-P preload bootloader\n\
-\t-p set serial port name\n\
+help ="\nUsage: "+ os.path.basename(__file__) + " -p serialport [-V] [-e] [-f inputfile] [-v] [-r] [-b bootloaderfile]\n\n\
+\t-b[path] preload bootloader\n\
+\t-p[serialport] set serial port name\n\
 \t-V verbose\n\
 \t-e erase\n\
 \t-f flash \n\
 \t-v verify\n\
-\t-r run uploaded"
+\t-r run uploaded\n\
+"
 
 def sync():
 	print ("Synchronization...")
@@ -171,7 +173,7 @@ def bootExtLoader(dwadrboot,ilboot,bufram):
 		return True
 	
 
-def runExtLoader(dwadrboot,ilboot,bufcod):
+def runExtLoader(dwadrboot):
 	
 	print("Starting bootloader...")
 	id_str = bytearray(b'1986BOOTUART')
@@ -344,45 +346,6 @@ def run():
 		print("Run at 0x08000000 OK!")
 	
 	return True;
-	
-	
-def main(argv):
-	acts = []
-	try:
-		opts, args = getopt.getopt(argv,"p:Vef:vrP")
-	except getopt.GetoptError:
-		print(help)
-		sys.exit(2)
-
-	if opts == []:
-		print(help)
-		sys.exit()
-
-	for opt, arg in opts:
-		if opt == "-p":
-			global port 
-			port = arg
-		elif opt == "-V":
-			global verbose 
-			verbose = True
-
-		elif opt == "-P":
-			acts.append("preload")
-		elif opt == "-e":
-			acts.append("erase")
-
-		elif opt == "-f":
-			global inputfile 
-			inputfile = arg
-			acts.append("flash")
-		
-		elif opt == "-v":
-			acts.append("verify")
-		
-		elif opt == "-r":
-			acts.append("run")
-
-	return acts
 
 
 def getDataHex(line, dwadr_seg_hex, dwadr_lineoffs_hex):
@@ -456,7 +419,7 @@ def getBootCode(type = 'b', filename = "1986_BOOT_UART.HEX"):
 	
 	nb = 1;
 	i=0;
-	while(nb == 1): #????????????????????????
+	try:
 		with open(strfn,'rb') as file:
 			dwadr_seg_hex = 0
 			dwadr_lineoffs_hex = 0
@@ -506,10 +469,13 @@ def getBootCode(type = 'b', filename = "1986_BOOT_UART.HEX"):
 							i = ((i + 0x100) & 0xffffff00);
 						ilcod = i;
 						break;
-				return ilcod,bufcod;				
+				return ilcod,bufcod;
+	except (OSError, IOError) as e:
+		print("Cann't find bootloader hex file:", filename)
+		sys.exit();
 
 def prepareBootCode():
-	filename = "1986_BOOT_UART.HEX"
+	filename = bootloaderfile
 	result=getBootCode('b', filename)
 	dwadrboot,ilboot,bufcod=result
 	#print(dwadrboot,ilboot)
@@ -550,11 +516,53 @@ def test():
 
 	sys.exit()
 
+def parseParams(argv):
+	acts = []
+	try:
+		opts, args = getopt.getopt(argv,"p:Vef:vrb:")
+	except getopt.GetoptError:
+		print(help)
+		sys.exit(2)
+
+	if opts == []:
+		print(help)
+		sys.exit()
+
+	for opt, arg in opts:
+		if opt == "-p":
+			global port 
+			port = arg
+		elif opt == "-V":
+			global verbose 
+			verbose = True
+
+		elif opt == "-P":
+			global bootloaderfile
+			bootloaderfile = arg
+
+			acts.append("preload")
+		elif opt == "-e":
+			acts.append("erase")
+
+		elif opt == "-f":
+			global inputfile 
+			inputfile = arg
+			acts.append("flash")
+		
+		elif opt == "-v":
+			acts.append("verify")
+		
+		elif opt == "-r":
+			acts.append("run")
+		
+
+	return acts
+
+
 if __name__ == "__main__":
 	
-	#test()
+	acts = parseParams(sys.argv[1:])
 
-	acts = main(sys.argv[1:])
 	
 	if port:
 		try:
@@ -566,39 +574,32 @@ if __name__ == "__main__":
 		print("Opened at",serial.getBaudrate()) if verbose else None
 	else:
 		print("com port should be defined")
-		sys.exit()
-	#do the thing!s
+		sys.exit()	
 
-
-	#work with factory bootloader (flash)
-
-	dwadrboot,ilboot,bufcod=prepareBootCode()
-	ilcod,bufcodhex = prepareHexCode()
-	
-	#sys.exit()
-	
-
-	#sys.exit()
-	#work with extended bootloader (ram)
-	
 	if "preload" in acts:
+		dwadrboot,ilboot,bufcod=prepareBootCode()
 		if(not sync() or \
 		not setBaudrate(115200) or \
 		not bootExtLoader(dwadrboot,ilboot,bufcod) or \
-		not runExtLoader(dwadrboot,ilboot,bufcod)):
+		not runExtLoader(dwadrboot)):
 			sys.exit()
 	else:
+		dwadrboot=0x7800
 		if(not sync() or \
 		not setBaudrate(115200) or \
-		not runExtLoader(dwadrboot,ilboot,bufcod)):
+		not runExtLoader(dwadrboot)):
 			sys.exit()
 
+	ilcod,bufcodhex = [0x00,bytearray()]
 	if "erase" in acts:
 		erase()
 	if "flash" in acts:
+		ilcod,bufcodhex = prepareHexCode()
 		program(ilcod,bufcodhex)
+		print(ilcod,bufcodhex)
 	if "verify" in acts:
 		verify(ilcod, bufcodhex)
+		print(ilcod,bufcodhex)
 	if "run" in acts:
 		run()
 
