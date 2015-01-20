@@ -1,18 +1,10 @@
 #!/usr/bin/python
 #
-#	-p <port>
-#	-e #erase before flashing
-#	-f <file_to_flash>
-#	-v #verify
-#	-r #run after flashing
-#	-V #verbose output
-#
+# You can use this file under CC licence if you'll pay me at least $20  >:)
+# 
+# author: ko10ok
 #
 
-
-
-# script seq 
-# getBootCod (code of bootloader) -> upload to chip -> e|f|r
 import sys, getopt,os
 
 from serial import Serial,SerialException
@@ -34,6 +26,11 @@ help ="\nUsage: "+ os.path.basename(__file__) + " -p serialport [-V] [-e] [-f in
 \t-v verify\n\
 \t-r run uploaded\n\
 "
+
+#
+# "BIOS" connection && bootloader upload section --------------------------------------------------
+#
+#
 
 def sync():
 	print ("Synchronization...")
@@ -209,6 +206,11 @@ def runExtLoader(dwadrboot):
 	print("Bootloader started successfully")
 	return True
 	
+#
+# basic bootloader functions section --------------------------------------------------------------
+#
+#
+
 def erase():
 	verbose = True
 
@@ -283,6 +285,8 @@ def program(ilcod, bufcodhex):
 	print("Program {} byte done!".format(ilcod));
 	return 1;
 
+
+#nobody cares about verifying. everybody just do compile && run. XD
 def verify(ilcod, bufcodhex):
 	print("Verify...")
 	'''
@@ -347,6 +351,10 @@ def run():
 	
 	return True;
 
+#
+# File prepare function section -----------------------------------------------------------------
+#
+#
 
 def getDataHex(line, dwadr_seg_hex, dwadr_lineoffs_hex):
 	'''
@@ -359,7 +367,6 @@ def getDataHex(line, dwadr_seg_hex, dwadr_lineoffs_hex):
 	
 	if(buf_hexstr[0] != 0x3a):
 		return	0;
-	
 
 	checksumm = '\x00';
 	bl_hex = int(buf_hexstr[1:3], 16)
@@ -388,7 +395,7 @@ def getDataHex(line, dwadr_seg_hex, dwadr_lineoffs_hex):
 	return bl_hex,btype_hex,wadr_offs_hex,dwadr_seg_hex,dwadr_lineoffs_hex,buf_data_hex;
 
 
-def getBootCode(type = 'b', filename = "1986_BOOT_UART.HEX"):
+def prepareFileData(type = 'b', filename = "1986_BOOT_UART.HEX"):
 	'''
 	dwadr_seg_hex = 0;
 	dwadr_lineoffs_hex = 0;
@@ -460,6 +467,7 @@ def getBootCode(type = 'b', filename = "1986_BOOT_UART.HEX"):
 					if(bufcod[i] != 0xff):
 						ilboot = (i+16 - dwadrboot) & 0xfffffff7
 						break;
+				print("bootloader data preloaded successfully")
 				return dwadrboot,ilboot,bufcod;
 
 			else:
@@ -469,52 +477,17 @@ def getBootCode(type = 'b', filename = "1986_BOOT_UART.HEX"):
 							i = ((i + 0x100) & 0xffffff00);
 						ilcod = i;
 						break;
+				print("hex file data preloaded successfully")
 				return ilcod,bufcod;
+				
 	except (OSError, IOError) as e:
 		print("Cann't find bootloader hex file:", filename)
 		sys.exit();
 
-def prepareBootCode():
-	filename = bootloaderfile
-	result=getBootCode('b', filename)
-	dwadrboot,ilboot,bufcod=result
-	#print(dwadrboot,ilboot)
-	#print( ''.join('{:02x} '.format(bufcod[x]) for x in range(dwadrboot,dwadrboot+ilboot)))
-	print("Preparing bootstrap done") 
-
-	return result
-
-def prepareHexCode():
-	filename = inputfile
-	result=getBootCode('h', filename)
-	ilcod,bufcod=result
-	#print( ilcod,''.join('{:02x} '.format(bufcod[x]) for x in range(0,ilcod)))
-	print("Preparing hex file done") 
-
-	return result
-
-def test():
-	dwadrboot,ilboot,bufcod=prepareBootCode()
-	txdbuf =bytearray([ ord('A'),\
-		0x00,\
-		dwadrboot & 0xff,\
-		(dwadrboot>>8) & 0xff,\
-		ord(b'\x00'),\
-		ord(b'\x20'),\
-		ilboot & 0xff,\
-		(ilboot>>8) & 0xff ])
-
-	txdbuf = bytearray([\
-		ord('B'),\
-		0x00,\
-		0xC2,\
-		0x01,\
-		0x00])
-	print(txdbuf)
-	
-	print( ''.join('{:02x} '.format(txdbuf[x]) for x in range(0,5)))
-
-	sys.exit()
+#
+# Input interface main logic section -------------------------------------------------------------
+#
+#
 
 def parseParams(argv):
 	acts = []
@@ -536,7 +509,7 @@ def parseParams(argv):
 			global verbose 
 			verbose = True
 
-		elif opt == "-P":
+		elif opt == "-b":
 			global bootloaderfile
 			bootloaderfile = arg
 
@@ -563,7 +536,6 @@ if __name__ == "__main__":
 	
 	acts = parseParams(sys.argv[1:])
 
-	
 	if port:
 		try:
 			serial = Serial(port=port,timeout=1)
@@ -577,7 +549,8 @@ if __name__ == "__main__":
 		sys.exit()	
 
 	if "preload" in acts:
-		dwadrboot,ilboot,bufcod=prepareBootCode()
+		dwadrboot,ilboot,bufcod = prepareFileData('b', bootloaderfile)
+
 		if(not sync() or \
 		not setBaudrate(115200) or \
 		not bootExtLoader(dwadrboot,ilboot,bufcod) or \
@@ -594,12 +567,14 @@ if __name__ == "__main__":
 	if "erase" in acts:
 		erase()
 	if "flash" in acts:
-		ilcod,bufcodhex = prepareHexCode()
+		ilcod,bufcodhex = prepareFileData('h', inputfile)
 		program(ilcod,bufcodhex)
 		print(ilcod,bufcodhex)
 	if "verify" in acts:
-		verify(ilcod, bufcodhex)
-		print(ilcod,bufcodhex)
+		if(ilcod == 0x00):
+			print("Nothing to verify, stage skipped")
+		else:
+			verify(ilcod, bufcodhex)
 	if "run" in acts:
 		run()
 
