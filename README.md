@@ -1,6 +1,24 @@
 # mila-fw
 Python firmware uploader for `mila` project
 
+
+#HOWTO preinstal
+Python version dep. > 3.4
+
+
+apt-get install python3 python3-setuptool
+
+easy_install python3-pip
+
+pip install pyserial
+
+    OR
+    
+apt-get install python3-pip
+
+pip install pyserial
+  
+
 #USAGE EXAMPLE
 
 `c:\Users\Петр\Documents\GitHub\mila-fw>c:\Python34\python.exe fw.py -P -p COM1 -e -f LED.HEX -V -r`, where:
@@ -55,7 +73,7 @@ c:\Users\Петр\Documents\GitHub\mila-fw>
 
 
 #TODO:
-
+Убрать перечитывание файла 1989......HEX на статичные адреса, при отсутствии флага перезаливки бутлоадера. Поместить адреса в конфиг при перезаливке
 
 
 #ISSUES:
