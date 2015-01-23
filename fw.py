@@ -5,7 +5,7 @@
 # author: ko10ok
 #
 
-import sys, getopt,os
+import sys, getopt, os
 
 from serial import Serial,SerialException
 from time import sleep
@@ -17,14 +17,14 @@ verbose = False
 debug = False
 
 serial = Serial()
-help ="\nUsage: "+ os.path.basename(__file__) + " -p serialport [-V] [-e] [-f inputfile] [-v] [-r] [-b bootloaderfile]\n\n\
-\t-b[path] preload bootloader\n\
-\t-p[serialport] set serial port name\n\
-\t-V verbose\n\
-\t-e erase\n\
-\t-f flash \n\
-\t-v verify\n\
-\t-r run uploaded\n\
+help ="  Usage: "+ os.path.basename(__file__) + " -p serialport [-V] [-e] [-f ifile] [-v] [-r] [-b blfile]\n\n\
+\t-b blfile \t  preload bootloader\n\
+\t-p serialport \t  set serial port name\n\
+\t-V \t\t  verbose\n\
+\t-e \t\t  erase\n\
+\t-f ifile \t  flash \n\
+\t-v \t\t  verify\n\
+\t-r \t\t  run uploaded\n\
 "
 
 #
@@ -493,7 +493,8 @@ def parseParams(argv):
 	acts = []
 	try:
 		opts, args = getopt.getopt(argv,"p:Vef:vrb:")
-	except getopt.GetoptError:
+	except getopt.GetoptError as error:
+		print("  Params error:", error.msg)
 		print(help)
 		sys.exit(2)
 
@@ -530,7 +531,6 @@ def parseParams(argv):
 		
 
 	return acts
-
 
 if __name__ == "__main__":
 	
