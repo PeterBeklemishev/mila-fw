@@ -17,7 +17,8 @@ verbose = False
 debug = False
 
 serial = Serial()
-help ="  Usage: "+ os.path.basename(__file__) + " -p serialport [-V] [-e] [-f ifile] [-v] [-r] [-b blfile]\n\n\
+splash = "___________.__                                       \n\_   _____/|__|______  _____                         \n |    __)  |  \_  __ \/     \                        \n |     \   |  ||  | \/  Y Y  \                       \n \___  /   |__||__|  |__|_|  /                       \n     \/                    \/                        \n    __      __                     .__               \n   /  \    /  \_____ ______________|__| ___________  \n   \   \/\/   /\__  \\_  __ \_  __ \  |/  _ \_  __ \ \n    \        /  / __ \|  | \/|  | \/  (  <_> )  | \/ \n     \__/\  /  (____  /__|   |__|  |__|\____/|__|    \n          \/        \/                              \n "
+help =splash + "Usage: " + os.path.basename(__file__) + " -p serialport [-V] [-e] [-f ifile] [-v] [-r] [-b blfile]\n\n\
 \t-b blfile \t  preload bootloader\n\
 \t-p serialport \t  set serial port name\n\
 \t-V \t\t  verbose\n\
